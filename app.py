@@ -6,27 +6,27 @@ st.set_page_config(page_title="Royan Excel Report", page_icon="📊", layout="ce
 
 st.title("📊 نظام تقارير الإدارة - مجموعة رويان")
 st.markdown("---")
-st.info("اضغط على الزر أدناه لتحميل دراسة الجدوى الشاملة في صفحة إكسيل واحدة جاهزة للطباعة والمناقشة.")
+st.success("هذا النظام يقوم بتوليد ملف إكسيل **تفاعلي (يحتوي على معادلات حقيقية)** ليكون أداة الإقناع الأقوى في اجتماعاتك.")
 
-# --- 1. تجهيز البيانات ---
+# --- 1. تجهيز البيانات (بوضع أصفار في أماكن المجاميع ليتم استبدالها بمعادلات لاحقاً) ---
 df_invest_flexo = pd.DataFrame({
     "البند": ["ماكينة طباعة فلكسو CI (8 ألوان)", "ماكينة تركيب البليتات (Mounter)", "مبرد الهواء والكمبروسر", "إجمالي استثمار الفلكسو"],
-    "التكلفة (ريال)": [8000000, 150000, 400000, 8550000]
+    "التكلفة (ريال)": [8000000, 150000, 400000, 0] # الصفر سيستبدل بمعادلة
 })
 
 df_invest_roto = pd.DataFrame({
     "البند": ["ماكينة طباعة روتوجرافيور (8 ألوان)", "غلاية الزيت الحراري (Thermal Boiler)", "معدات نقل وتخزين السلندرات", "إجمالي استثمار الروتو"],
-    "التكلفة (ريال)": [9000000, 1500000, 300000, 10800000]
+    "التكلفة (ريال)": [9000000, 1500000, 300000, 0] # الصفر سيستبدل بمعادلة
 })
 
 df_opex = pd.DataFrame({
-    "بند التكلفة الشهرية": ["الرواتب والأجور", "الإيجار والمصاريف الإدارية", "فاتورة الطاقة (الماكينة + الغلاية)"],
-    "التكلفة في الفلكسو (ريال)": [150000, 50000, 25000], 
-    "التكلفة في الروتو (ريال)": [150000, 60000, 65000]  
+    "بند التكلفة الشهرية": ["الرواتب والأجور", "الإيجار والمصاريف الإدارية", "فاتورة الطاقة (الماكينة + الغلاية)", "إجمالي المصاريف الشهرية"],
+    "التكلفة في الفلكسو (ريال)": [150000, 50000, 25000, 0], 
+    "التكلفة في الروتو (ريال)": [150000, 60000, 65000, 0]  
 })
 
 df_scenario = pd.DataFrame({
-    "عناصر تكلفة الطلبية (حجم 5 طن - 8 ألوان)": [
+    "عناصر تكلفة الطلبية": [
         "تكلفة المواد الخام", 
         "تكلفة التجهيز (بليتات مقابل سلندرات)", 
         "تكلفة هالك التشغيل والتجهيز", 
@@ -34,8 +34,8 @@ df_scenario = pd.DataFrame({
         "إجمالي تكلفة الطلبية",
         "تكلفة الطن الواحد"
     ],
-    "تقنية الفلكسو (ريال)": [45000, 3200, 450, 200, 48850, 9770],
-    "تقنية الروتو (ريال)": [45000, 12000, 2250, 150, 59400, 11880]
+    "تقنية الفلكسو (ريال)": [45000, 3200, 450, 200, 0, 0],
+    "تقنية الروتو (ريال)": [45000, 12000, 2250, 150, 0, 0]
 })
 
 df_client_mix = pd.DataFrame({
@@ -45,35 +45,42 @@ df_client_mix = pd.DataFrame({
     "سعر البيع المستهدف للعميل - روتو (ريال/كجم)": [13.0, 13.5, 15.0]
 })
 
-# --- 2. إنشاء ملف الإكسيل وتنسيقه ---
+# --- 2. إنشاء الإكسيل وحقن المعادلات ---
 buffer = io.BytesIO()
 with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
     workbook = writer.book
-    worksheet = workbook.add_worksheet('دراسة الجدوى')
+    worksheet = workbook.add_worksheet('دراسة الجدوى التفاعلية')
     worksheet.right_to_left() 
     
-    # التنسيقات
-    header_format = workbook.add_format({'bold': True, 'bg_color': '#1F4E78', 'font_color': 'white', 'border': 1, 'align': 'center'})
-    money_format = workbook.add_format({'num_format': '#,##0', 'border': 1, 'align': 'center'})
-    title_format = workbook.add_format({'bold': True, 'font_size': 14, 'bg_color': '#D9E1F2', 'align': 'center', 'border': 1})
+    # تنسيقات الإكسيل
+    header_format = workbook.add_format({'bold': True, 'bg_color': '#1F4E78', 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+    money_format = workbook.add_format({'num_format': '#,##0', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+    formula_format = workbook.add_format({'num_format': '#,##0', 'bold': True, 'bg_color': '#E2EFDA', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+    title_format = workbook.add_format({'bold': True, 'font_size': 13, 'bg_color': '#D9E1F2', 'align': 'center', 'border': 1})
+    input_format = workbook.add_format({'bold': True, 'bg_color': '#FFF2CC', 'border': 1, 'align': 'center', 'font_color': 'red'})
 
-    # كتابة الجداول
+    # --- كتابة الجداول ---
     worksheet.merge_range('A1:B1', '1. استثمار الفلكسو (CAPEX)', title_format)
-    df_invest_flexo.to_excel(writer, sheet_name='دراسة الجدوى', startrow=1, startcol=0, index=False)
+    df_invest_flexo.to_excel(writer, sheet_name='دراسة الجدوى التفاعلية', startrow=1, startcol=0, index=False)
     
     worksheet.merge_range('D1:E1', '1. استثمار الروتو (CAPEX)', title_format)
-    df_invest_roto.to_excel(writer, sheet_name='دراسة الجدوى', startrow=1, startcol=3, index=False)
+    df_invest_roto.to_excel(writer, sheet_name='دراسة الجدوى التفاعلية', startrow=1, startcol=3, index=False)
 
     worksheet.merge_range('A8:C8', '2. التكاليف التشغيلية الشهرية للمصنع (OPEX)', title_format)
-    df_opex.to_excel(writer, sheet_name='دراسة الجدوى', startrow=8, startcol=0, index=False)
+    df_opex.to_excel(writer, sheet_name='دراسة الجدوى التفاعلية', startrow=8, startcol=0, index=False)
 
-    worksheet.merge_range('A14:C14', '3. سيناريو التكلفة (طلبية 5 طن - 8 ألوان)', title_format)
-    df_scenario.to_excel(writer, sheet_name='دراسة الجدوى', startrow=14, startcol=0, index=False)
+    # خلية تفاعلية لتغيير حجم الطلبية
+    worksheet.write('A15', '👈 غير حجم الطلبية هنا لاختبار السعر (بالطن):', title_format)
+    worksheet.write('B15', 5, input_format) # خلية قابلة للتعديل باللون الأصفر
+    worksheet.write('C15', 'الأسفل سيتغير تلقائياً', normal_format=None)
 
-    worksheet.merge_range('A23:D23', '4. تحليل منتجات العميل', title_format)
-    df_client_mix.to_excel(writer, sheet_name='دراسة الجدوى', startrow=23, startcol=0, index=False)
+    worksheet.merge_range('A16:C16', '3. سيناريوهات التكلفة للطلبية (تتفاعل مع الخلية أعلاه)', title_format)
+    df_scenario.to_excel(writer, sheet_name='دراسة الجدوى التفاعلية', startrow=16, startcol=0, index=False)
 
-    # تطبيق التنسيقات
+    worksheet.merge_range('A25:D25', '4. تحليل منتجات العميل', title_format)
+    df_client_mix.to_excel(writer, sheet_name='دراسة الجدوى التفاعلية', startrow=25, startcol=0, index=False)
+
+    # --- تطبيق التنسيقات على الأعمدة العادية ---
     for col_num, value in enumerate(df_invest_flexo.columns.values):
         worksheet.write(1, col_num, value, header_format)
     for col_num, value in enumerate(df_invest_roto.columns.values):
@@ -81,10 +88,30 @@ with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
     for col_num, value in enumerate(df_opex.columns.values):
         worksheet.write(8, col_num, value, header_format)
     for col_num, value in enumerate(df_scenario.columns.values):
-        worksheet.write(14, col_num, value, header_format)
+        worksheet.write(16, col_num, value, header_format)
     for col_num, value in enumerate(df_client_mix.columns.values):
-        worksheet.write(23, col_num, value, header_format)
+        worksheet.write(25, col_num, value, header_format)
 
+    # ----------------------------------------------------
+    # حقن المعادلات الرياضية (Formulas) الحقيقية في الإكسيل
+    # ----------------------------------------------------
+    # 1. معادلات الاستثمار (CAPEX)
+    worksheet.write_formula('B6', '=SUM(B3:B5)', formula_format)
+    worksheet.write_formula('E6', '=SUM(E3:E5)', formula_format)
+
+    # 2. معادلات المصاريف التشغيلية (OPEX)
+    worksheet.write_formula('B13', '=SUM(B10:B12)', formula_format)
+    worksheet.write_formula('C13', '=SUM(C10:C12)', formula_format)
+
+    # 3. معادلات السيناريو (ترتبط بالخلية B15 الخاصة بحجم الطلبية)
+    worksheet.write_formula('B22', '=SUM(B18:B21)', formula_format)
+    worksheet.write_formula('C22', '=SUM(C18:C21)', formula_format)
+    
+    # قسمة إجمالي التكلفة على خلية "حجم الطلبية" (B15)
+    worksheet.write_formula('B23', '=B22/B15', formula_format)
+    worksheet.write_formula('C23', '=C22/B15', formula_format)
+
+    # --- توسيع الأعمدة لتناسب النص ---
     worksheet.set_column('A:A', 45)
     worksheet.set_column('B:B', 20, money_format)
     worksheet.set_column('D:D', 45)
@@ -93,8 +120,8 @@ with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
 
 # --- 3. زر التحميل ---
 st.download_button(
-    label="📥 اضغط هنا لتحميل تقرير الإكسيل",
+    label="📥 تحميل ملف الإكسيل التفاعلي",
     data=buffer.getvalue(),
-    file_name="Royan_Feasibility_Report.xlsx",
+    file_name="Interactive_Feasibility_Report.xlsx",
     mime="application/vnd.ms-excel"
 )
