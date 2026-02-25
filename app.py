@@ -58,6 +58,9 @@ with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
     formula_format = workbook.add_format({'num_format': '#,##0', 'bold': True, 'bg_color': '#E2EFDA', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
     title_format = workbook.add_format({'bold': True, 'font_size': 13, 'bg_color': '#D9E1F2', 'align': 'center', 'border': 1})
     input_format = workbook.add_format({'bold': True, 'bg_color': '#FFF2CC', 'border': 1, 'align': 'center', 'font_color': 'red'})
+    
+    # إضافة التنسيق الذي كان مفقوداً وتسبب في الخطأ
+    normal_format = workbook.add_format({'border': 1, 'align': 'center', 'valign': 'vcenter'})
 
     # --- كتابة الجداول ---
     worksheet.merge_range('A1:B1', '1. استثمار الفلكسو (CAPEX)', title_format)
@@ -72,7 +75,7 @@ with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
     # خلية تفاعلية لتغيير حجم الطلبية
     worksheet.write('A15', '👈 غير حجم الطلبية هنا لاختبار السعر (بالطن):', title_format)
     worksheet.write('B15', 5, input_format) # خلية قابلة للتعديل باللون الأصفر
-    worksheet.write('C15', 'الأسفل سيتغير تلقائياً', normal_format=None)
+    worksheet.write('C15', 'الأسفل سيتغير تلقائياً', normal_format) # تم تصحيح الخطأ هنا
 
     worksheet.merge_range('A16:C16', '3. سيناريوهات التكلفة للطلبية (تتفاعل مع الخلية أعلاه)', title_format)
     df_scenario.to_excel(writer, sheet_name='دراسة الجدوى التفاعلية', startrow=16, startcol=0, index=False)
@@ -95,15 +98,10 @@ with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
     # ----------------------------------------------------
     # حقن المعادلات الرياضية (Formulas) الحقيقية في الإكسيل
     # ----------------------------------------------------
-    # 1. معادلات الاستثمار (CAPEX)
     worksheet.write_formula('B6', '=SUM(B3:B5)', formula_format)
     worksheet.write_formula('E6', '=SUM(E3:E5)', formula_format)
-
-    # 2. معادلات المصاريف التشغيلية (OPEX)
     worksheet.write_formula('B13', '=SUM(B10:B12)', formula_format)
     worksheet.write_formula('C13', '=SUM(C10:C12)', formula_format)
-
-    # 3. معادلات السيناريو (ترتبط بالخلية B15 الخاصة بحجم الطلبية)
     worksheet.write_formula('B22', '=SUM(B18:B21)', formula_format)
     worksheet.write_formula('C22', '=SUM(C18:C21)', formula_format)
     
